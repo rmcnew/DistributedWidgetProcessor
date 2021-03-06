@@ -33,16 +33,12 @@ def parse_command_line():
                         help="How many parallel workers to run for widget processing?",
                         action="store",
                         required=False,
+                        default=1,
                         type=int)
-    parser.add_argument("--dry-run",
-                        help="Do not actually create, update, or delete widgets; just log what would be done",
-                        action="store",
-                        required=False,
-                        type=bool)
     parser.add_argument("--delete-completed",
                         help="Delete widget requests after they are completed",
-                        action="store",
+                        action="store_true",
                         required=False,
-                        type=bool)
+                        default=False)
     args = parser.parse_args()
     return args
