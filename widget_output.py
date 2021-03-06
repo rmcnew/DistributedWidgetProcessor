@@ -1,3 +1,5 @@
+# Functions to handle widget operations for various output sinks
+
 def put_widget_to_local_disk(name):
     None
 

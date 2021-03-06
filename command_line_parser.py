@@ -1,3 +1,4 @@
+# Parse and validate command line arguments
 import argparse
 import logging
 from constants import *
@@ -33,5 +34,15 @@ def parse_command_line():
                         action="store",
                         required=False,
                         type=int)
+    parser.add_argument("--dry-run",
+                        help="Do not actually create, update, or delete widgets; just log what would be done",
+                        action="store",
+                        required=False,
+                        type=bool)
+    parser.add_argument("--delete-completed",
+                        help="Delete widget requests after they are completed",
+                        action="store",
+                        required=False,
+                        type=bool)
     args = parser.parse_args()
     return args
