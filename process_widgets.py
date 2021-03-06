@@ -1,11 +1,13 @@
 import logging
-from config import command_line_parser
-from shared.constants import *
+import queue
+import command_line_parser
+from constants import *
 
 processes = []
+queue = queue.Queue
 
 
-def process_widget_worker(args):
+def populate_input_queue(args):
     # connect to input source
     if args.input_type == LOCAL_DISK:
         logging.info("Using LOCAL DISK input with path: {}".format(args.input_name))
@@ -31,7 +33,10 @@ def main():
                         level=logging.INFO)
     # process command line arguments
     args = command_line_parser.parse_command_line()
-    process_widget_worker(args)
+    # create input queue and populate from input source
+    populate_input_queue(args)
+    # spin up workers to process queue
+    # provide each worker with output type and name
 
 
 if __name__ == '__main__':

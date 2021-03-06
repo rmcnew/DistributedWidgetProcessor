@@ -1,6 +1,6 @@
 import argparse
 import logging
-from shared.constants import *
+from constants import *
 
 
 def parse_command_line():
