@@ -2,6 +2,7 @@
 import logging
 import os
 import random
+import boto3
 from pathlib import Path
 
 from constants import *
@@ -71,7 +72,20 @@ def get_widget_from_local_disk(id, input_name):
 
 
 # S3
-def get_widgets_from_s3(input_name):
+def rename_object(id, input_name, source, destination):
+    """Rename an object within the same bucket"""
+    logging.info("Widget_Worker_{}: Moving {} to {} in S3 bucket {}".format(id, source, destination, input_name))
+    s3 = boto3.resource('s3')
+    s3.Object(input_name, destination).copy_from(CopySource=source)
+    s3.Object(input_name, source).delete()
+
+def get_widget_from_s3_in_key_order(id, input_name):
+    """Get a widget from the specified S3 bucket for processing"""
     # open s3 bucket
+    s3 = boto3.client('s3')
+    some_objects = s3.list_objects_v2(Bucket=input_name, MaxKeys=S3_MAX_KEYS_TO_LIST)
+    return some_objects
+    key_to_use = some_objects[CONTENTS][0][KEY]
+    logging.info("Widget_Worker_{}: Getting widget for key {}".format(id, key_to_use))
     # read contents
-    None
+
