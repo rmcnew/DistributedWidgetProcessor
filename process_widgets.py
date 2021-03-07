@@ -13,7 +13,7 @@ workers = []
 
 def process_widget(id, args):
     logging.info("Widget_Worker_{}: starting up".format(id))
-    filename = None
+    input_key = None
     widget_string = ""
 
     while True:
@@ -21,20 +21,27 @@ def process_widget(id, args):
         if args.input_type == LOCAL_DISK:
             logging.info("Widget_Worker_{}: Using LOCAL DISK input with path: {}".format(id, args.input_name))
             widget_input.create_local_disk_work_locations(id, args.input_name)
-            (filename, widget_string) = widget_input.get_widget_from_local_disk(id, args.input_name)
-            if filename is None:
+            (input_key, widget_string) = widget_input.get_widget_from_local_disk(id, args.input_name)
+            if input_key is None:
                 break
-            widget_input.move_from_input_to_processing_local_disk(id, filename, args.input_name)
-            logging.info("Widget_Worker_{}: processing widget: {}".format(id, widget_string))
+            widget_input.move_from_input_to_processing_local_disk(id, input_key, args.input_name)
 
         elif args.input_type == S3:
             logging.info("Widget_Worker_{}: Using S3 input with bucket: {}".format(id, args.input_name))
+            (input_key, widget_string) = widget_input.get_widget_from_s3_in_key_order(id, args.input_name)
+            if input_key is None:
+                break
+            widget_input.move_from_input_to_processing_s3(id, input_key, args.input_name)
 
         # parse widget request
+        logging.info("Widget_Worker_{}: processing widget: {}".format(id, widget_string))
         widget = json.loads(widget_string)
         if widget[TYPE] != CREATE:
             # only handle CREATE requests for now, move other requests to completed
-            widget_input.move_from_processing_to_completed_local_disk(id, filename, args.input_name)
+            if args.input_type == LOCAL_DISK:
+                widget_input.move_from_processing_to_completed_local_disk(id, input_key, args.input_name)
+            elif args.input_type == S3:
+                widget_input.move_from_processing_to_completed_s3(id, input_key, args.input_name)
             continue
         widget_id = widget[WIDGET_ID]
         widget_owner = widget[OWNER].replace(" ", "-")
@@ -51,13 +58,18 @@ def process_widget(id, args):
             logging.info("Widget_Worker_{}: Using LOCAL_DISK output with path: {}".format(id, args.output_name))
             widget_output.create_local_disk_output_directories(id, args.output_name, widget_owner)
             widget_output.put_widget_to_local_disk(id, args.output_name, widget_id, widget_owner, widget_to_store_string)
-            widget_input.move_from_processing_to_completed_local_disk(id, filename, args.input_name)
 
         elif args.output_type == S3:
             logging.info("Widget_Worker_{}: Using S3 output with bucket: {}".format(id, args.output_name))
 
         elif args.output_type == DYNAMO_DB:
             logging.info("Widget_Worker_{}: Using DYNAMO DB output with table: {}".format(id, args.output_name))
+
+        # move to completed
+        if args.input_type == LOCAL_DISK:
+            widget_input.move_from_processing_to_completed_local_disk(id, input_key, args.input_name)
+        elif args.input_type == S3:
+            widget_input.move_from_processing_to_completed_s3(id, input_key, args.input_name)
 
 
 def main():

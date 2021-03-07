@@ -1,5 +1,6 @@
 # Constants that are shared throughout the program to avoid typographical errors
 
+BODY = "Body"
 COMPLETED_LOCATION = "completed"
 CONTENTS = "Contents"
 CREATE = "create"
@@ -11,6 +12,7 @@ ERROR_LOCATION = "error"
 LABEL = "label"
 LOCAL_DISK = "LOCAL_DISK"
 KEY = "Key"
+KEY_COUNT = "KeyCount"
 OWNER = "owner"
 OTHER_ATTRIBUTES = "otherAttributes"
 PROCESSING_LOCATION = "processing"
@@ -20,5 +22,6 @@ S3 = "S3"
 S3_MAX_KEYS_TO_LIST = 10
 TYPE = "type"
 UPDATE = "update"
+UTF8 = "utf-8"
 WEB_BUCKET = "usu-cs5260-homework-assignment-two-web"
 WIDGET_ID = "widgetId"
