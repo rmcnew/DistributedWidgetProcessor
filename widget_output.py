@@ -20,7 +20,7 @@ def put_widget_to_local_disk(id, output_name, widget_id, widget_owner, widget):
     """Put the widget to local disk"""
     logging.info(
         "Widget_Worker_{}: Putting widget_id: {} for owner: {} in {}".format(id, widget_id, widget_owner, output_name))
-    output_filename = Path("{}/{}".format(output_name, widget_id))
+    output_filename = Path("{}/{}/{}".format(output_name, widget_owner, widget_id))
     with open(output_filename, 'w') as file:
         file.write(widget)
 
