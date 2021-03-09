@@ -19,7 +19,7 @@ def process_widget(worker_id, args):
     while True:
         # connect to input source
         if args.input_type == LOCAL_DISK:
-            logging.info("Widget_Worker_{}: Using LOCAL DISK input with path: {}".format(worker_id, args.input_name))
+            logging.debug("Widget_Worker_{}: Using LOCAL DISK input with path: {}".format(worker_id, args.input_name))
             widget_input.create_local_disk_work_locations(worker_id, args.input_name)
             (input_key, widget_string) = widget_input.get_widget_from_local_disk(worker_id, args.input_name)
             if input_key is None:
@@ -27,7 +27,7 @@ def process_widget(worker_id, args):
             widget_input.move_from_input_to_processing_local_disk(worker_id, input_key, args.input_name)
 
         elif args.input_type == S3:
-            logging.info("Widget_Worker_{}: Using S3 input with bucket: {}".format(worker_id, args.input_name))
+            logging.debug("Widget_Worker_{}: Using S3 input with bucket: {}".format(worker_id, args.input_name))
             (input_key, widget_string) = widget_input.get_widget_from_s3_in_key_order(worker_id, args.input_name)
             if input_key is None:
                 break
@@ -45,7 +45,7 @@ def process_widget(worker_id, args):
             continue
         widget_id = widget[WIDGETID]
         widget_owner = widget[OWNER].replace(" ", "-")
-        logging.info("Widget_Worker_{}: Found widget_id: {} and owner: {}".format(worker_id, widget_id, widget_owner))
+        logging.debug("Widget_Worker_{}: Found widget_id: {} and owner: {}".format(worker_id, widget_id, widget_owner))
         widget_to_store = {WIDGET_ID: widget_id,
                            OWNER: widget_owner,
                            LABEL: widget[LABEL],
@@ -55,25 +55,31 @@ def process_widget(worker_id, args):
 
         # connect to output sink
         if args.output_type == LOCAL_DISK:
-            logging.info("Widget_Worker_{}: Using LOCAL_DISK output with path: {}".format(worker_id, args.output_name))
+            logging.debug("Widget_Worker_{}: Using LOCAL_DISK output with path: {}".format(worker_id, args.output_name))
             widget_output.create_local_disk_output_directories(worker_id, args.output_name, widget_owner)
             widget_output.put_widget_to_local_disk(worker_id, args.output_name, widget_id, widget_owner,
                                                    widget_to_store_string)
 
         elif args.output_type == S3:
-            logging.info("Widget_Worker_{}: Using S3 output with bucket: {}".format(worker_id, args.output_name))
+            logging.debug("Widget_Worker_{}: Using S3 output with bucket: {}".format(worker_id, args.output_name))
             widget_output.put_widget_to_s3(worker_id, args.output_name, widget_id, widget_owner, widget_to_store_string)
 
         elif args.output_type == DYNAMO_DB:
-            logging.info("Widget_Worker_{}: Using DYNAMO DB output with table: {}".format(worker_id, args.output_name))
+            logging.debug("Widget_Worker_{}: Using DYNAMO DB output with table: {}".format(worker_id, args.output_name))
             # Note that we pass in the widget_to_store object rather than widget_to_store_string
             widget_output.put_widget_to_dynamo_db(worker_id, args.output_name, widget_id, widget_owner, widget_to_store)
 
-        # move input widget to completed
+        # move input widget to completed or delete if requested
         if args.input_type == LOCAL_DISK:
-            widget_input.move_from_processing_to_completed_local_disk(worker_id, input_key, args.input_name)
+            if args.delete_completed:
+                widget_input.delete_completed_widget_from_local_disk(worker_id, input_key, args.input_name)
+            else:
+                widget_input.move_from_processing_to_completed_local_disk(worker_id, input_key, args.input_name)
         elif args.input_type == S3:
-            widget_input.move_from_processing_to_completed_s3(worker_id, input_key, args.input_name)
+            if args.delete_completed:
+                widget_input.delete_completed_widget_from_s3(worker_id, input_key, args.input_name)
+            else:
+                widget_input.move_from_processing_to_completed_s3(worker_id, input_key, args.input_name)
 
 
 def main():

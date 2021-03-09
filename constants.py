@@ -1,6 +1,7 @@
 # Constants that are shared throughout the program to avoid typographical errors
 
 BODY = "Body"
+CODE = "Code"
 COMPLETED_LOCATION = "completed"
 CONTENTS = "Contents"
 CREATE = "create"
@@ -8,12 +9,14 @@ DELETE = "delete"
 DESCRIPTION = "description"
 DIST_BUCKET = "usu-cs5260-homework-assignment-two-dist"
 DYNAMO_DB = "DYNAMO_DB"
+ERROR = "Error"
 ERROR_LOCATION = "error"
 KEY = "Key"
 KEY_COUNT = "KeyCount"
 LABEL = "label"
 LOCAL_DISK = "LOCAL_DISK"
 NAME = "name"
+NO_SUCH_KEY = 'NoSuchKey'
 OWNER = "owner"
 OTHER_ATTRIBUTES = "otherAttributes"
 PROCESSING_LOCATION = "processing"

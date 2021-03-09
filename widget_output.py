@@ -40,21 +40,21 @@ def put_widget_to_s3(worker_id, output_name, widget_id, widget_owner, widget):
 
 def convert_widget_to_dynamo_db_schema(worker_id, widget):
     """Unpack the widget to match the Dynamo DB table schema"""
-    logging.info(
+    logging.debug(
         "Widget_Worker_{}: Converting widget to Dynamo DB schema; input widget is {}".format(worker_id, widget))
     dynamo_request_widget = {}
     flat_widget = {}
     for key, value in widget.items():
         if key == OTHER_ATTRIBUTES:
-            logging.info("Widget_Worker_{}: otherAttributes is: {}".format(worker_id, value))
+            logging.debug("Widget_Worker_{}: otherAttributes is: {}".format(worker_id, value))
             for kvDict in value:
-                logging.info("Widget_Worker_{}: kvDict is: {}".format(worker_id, kvDict))
+                logging.debug("Widget_Worker_{}: kvDict is: {}".format(worker_id, kvDict))
                 flat_widget[kvDict[NAME]] = kvDict[VALUE]
         else:
             flat_widget[key] = value
     for key, value in flat_widget.items():
         dynamo_request_widget[key] = {S: value}
-    logging.info("Widget_Worker_{}: Converted Dynamo DB widget is: {}".format(worker_id, dynamo_request_widget))
+    logging.debug("Widget_Worker_{}: Converted Dynamo DB widget is: {}".format(worker_id, dynamo_request_widget))
     return dynamo_request_widget
 
 
