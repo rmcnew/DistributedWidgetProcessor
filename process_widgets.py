@@ -43,7 +43,7 @@ def process_widget(worker_id, args):
             elif args.input_type == S3:
                 widget_input.move_from_processing_to_completed_s3(worker_id, input_key, args.input_name)
             continue
-        widget_id = widget[WIDGET_ID]
+        widget_id = widget[WIDGETID]
         widget_owner = widget[OWNER].replace(" ", "-")
         logging.info("Widget_Worker_{}: Found widget_id: {} and owner: {}".format(worker_id, widget_id, widget_owner))
         widget_to_store = {WIDGET_ID: widget_id,
@@ -66,6 +66,8 @@ def process_widget(worker_id, args):
 
         elif args.output_type == DYNAMO_DB:
             logging.info("Widget_Worker_{}: Using DYNAMO DB output with table: {}".format(worker_id, args.output_name))
+            # Note that we pass in the widget_to_store object rather than widget_to_store_string
+            widget_output.put_widget_to_dynamo_db(worker_id, args.output_name, widget_id, widget_owner, widget_to_store)
 
         # move input widget to completed
         if args.input_type == LOCAL_DISK:
