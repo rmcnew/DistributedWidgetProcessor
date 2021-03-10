@@ -1,9 +1,11 @@
 # main entry point for widget processing
 import json
 import logging
+import time
 from multiprocessing import Process
 
 import command_line_parser
+import widget_creator
 import widget_input
 import widget_output
 from constants import *
@@ -11,75 +13,33 @@ from constants import *
 workers = []
 
 
-def process_widget(worker_id, args):
+def process_widgets(worker_id, args):
     logging.info("Widget_Worker_{}: starting up".format(worker_id))
-    input_key = None
-    widget_string = ""
+    input_retries_left = args.input_retry_max
 
     while True:
-        # connect to input source
-        if args.input_type == LOCAL_DISK:
-            logging.debug("Widget_Worker_{}: Using LOCAL DISK input with path: {}".format(worker_id, args.input_name))
-            widget_input.create_local_disk_work_locations(worker_id, args.input_name)
-            (input_key, widget_string) = widget_input.get_widget_from_local_disk(worker_id, args.input_name)
-            if input_key is None:
+        (input_key, widget_string) = widget_input.get_widget(worker_id, args)
+        if input_key is None:  # no widgets ready
+            if input_retries_left > 0:
+                logging.info("Widget_Worker_{}: No widgets ready for processing.  Sleeping {} seconds."
+                             .format(worker_id, args.input_retry_sleep))
+                time.sleep(args.input_retry_sleep)
+                input_retries_left = input_retries_left - 1
+                logging.info("Widget_Worker_{}: {} retries left".format(worker_id, input_retries_left))
+                continue
+            else:
+                logging.info("Widget_Worker_{}: No retries left.  Exiting.".format(worker_id))
                 break
-            widget_input.move_from_input_to_processing_local_disk(worker_id, input_key, args.input_name)
-
-        elif args.input_type == S3:
-            logging.debug("Widget_Worker_{}: Using S3 input with bucket: {}".format(worker_id, args.input_name))
-            (input_key, widget_string) = widget_input.get_widget_from_s3_in_key_order(worker_id, args.input_name)
-            if input_key is None:
-                break
-            widget_input.move_from_input_to_processing_s3(worker_id, input_key, args.input_name)
-
-        # parse widget request
-        logging.info("Widget_Worker_{}: processing widget: {}".format(worker_id, widget_string))
-        widget = json.loads(widget_string)
-        if widget[TYPE] != CREATE:
+        else:  # parse widget request and process it
+            logging.info("Widget_Worker_{}: processing widget: {}".format(worker_id, widget_string))
+            widget = json.loads(widget_string)
             # only handle CREATE requests for now, move other requests to completed
-            if args.input_type == LOCAL_DISK:
-                widget_input.move_from_processing_to_completed_local_disk(worker_id, input_key, args.input_name)
-            elif args.input_type == S3:
-                widget_input.move_from_processing_to_completed_s3(worker_id, input_key, args.input_name)
-            continue
-        widget_id = widget[WIDGETID]
-        widget_owner = widget[OWNER].replace(" ", "-")
-        logging.debug("Widget_Worker_{}: Found widget_id: {} and owner: {}".format(worker_id, widget_id, widget_owner))
-        widget_to_store = {WIDGET_ID: widget_id,
-                           OWNER: widget_owner,
-                           LABEL: widget[LABEL],
-                           DESCRIPTION: widget[DESCRIPTION],
-                           OTHER_ATTRIBUTES: widget[OTHER_ATTRIBUTES]}
-        widget_to_store_string = json.dumps(widget_to_store)
-
-        # connect to output sink
-        if args.output_type == LOCAL_DISK:
-            logging.debug("Widget_Worker_{}: Using LOCAL_DISK output with path: {}".format(worker_id, args.output_name))
-            widget_output.create_local_disk_output_directories(worker_id, args.output_name, widget_owner)
-            widget_output.put_widget_to_local_disk(worker_id, args.output_name, widget_id, widget_owner,
-                                                   widget_to_store_string)
-
-        elif args.output_type == S3:
-            logging.debug("Widget_Worker_{}: Using S3 output with bucket: {}".format(worker_id, args.output_name))
-            widget_output.put_widget_to_s3(worker_id, args.output_name, widget_id, widget_owner, widget_to_store_string)
-
-        elif args.output_type == DYNAMO_DB:
-            logging.debug("Widget_Worker_{}: Using DYNAMO DB output with table: {}".format(worker_id, args.output_name))
-            # Note that we pass in the widget_to_store object rather than widget_to_store_string
-            widget_output.put_widget_to_dynamo_db(worker_id, args.output_name, widget_id, widget_owner, widget_to_store)
-
-        # move input widget to completed or delete if requested
-        if args.input_type == LOCAL_DISK:
-            if args.delete_completed:
-                widget_input.delete_completed_widget_from_local_disk(worker_id, input_key, args.input_name)
-            else:
-                widget_input.move_from_processing_to_completed_local_disk(worker_id, input_key, args.input_name)
-        elif args.input_type == S3:
-            if args.delete_completed:
-                widget_input.delete_completed_widget_from_s3(worker_id, input_key, args.input_name)
-            else:
-                widget_input.move_from_processing_to_completed_s3(worker_id, input_key, args.input_name)
+            if widget[TYPE] == CREATE:
+                # create the widget
+                widget_to_store = widget_creator.create_widget(worker_id, widget)
+                widget_output.put_widget(worker_id, args, widget_to_store)
+            # move the widget to completed or delete if requested
+            widget_input.move_to_completed_or_delete(worker_id, args, input_key)
 
 
 def main():
@@ -94,7 +54,7 @@ def main():
     if args.parallel and args.parallel > 1:
         logging.info("Starting {} parallel workers to process widgets".format(args.parallel))
         for worker_id in range(args.parallel):
-            worker = Process(target=process_widget, args=(worker_id, args))
+            worker = Process(target=process_widgets, args=(worker_id, args))
             worker.start()
             workers.append(worker)
         logging.info("Workers started.  Waiting for completion")
@@ -103,7 +63,7 @@ def main():
     # Process widgets in the main process
     else:
         logging.info("Processing widgets in single process mode")
-        process_widget(0, args)
+        process_widgets(0, args)
 
 
 if __name__ == '__main__':

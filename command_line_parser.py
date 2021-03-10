@@ -1,6 +1,8 @@
 # Parse and validate command line arguments
 import argparse
 import logging
+import os
+import sys
 from constants import *
 
 
@@ -40,5 +42,25 @@ def parse_command_line():
                         action="store_true",
                         required=False,
                         default=False)
+    parser.add_argument("--input-retry-max",
+                        help="Max number of input poll retries before quitting. Must be positive or 0.",
+                        action="store",
+                        required=False,
+                        default=3,
+                        type=int)
+    parser.add_argument("--input-retry-sleep",
+                        help="How much time in seconds to wait before retrying input poll?  Must be positive or 0.",
+                        action="store",
+                        required=False,
+                        default=2,
+                        type=int)
     args = parser.parse_args()
+    if args.input_retry_max < 0:
+        print("Illegal Parameter Value:  input-retry-max parameter cannot be negative!")
+        parser.print_help()
+        sys.exit(os.EX_USAGE)
+    if args.input_retry_sleep < 0:
+        print("Illegal Parameter Value:  input-retry-sleep parameter cannot be negative!")
+        parser.print_help()
+        sys.exit(os.EX_USAGE)
     return args

@@ -162,3 +162,37 @@ def get_widget_from_s3_in_key_order(worker_id, input_name):
             else:
                 raise
     return None, ""  # If all the other workers got the keys before us, the S3_MAX_KEYS_TO_LIST needs to be bigger
+
+
+# main widget_input functions #
+def get_widget(worker_id, args):
+    """Get widget from input source"""
+    # connect to input source
+    if args.input_type == LOCAL_DISK:
+        logging.debug("Widget_Worker_{}: Using LOCAL DISK input with path: {}".format(worker_id, args.input_name))
+        create_local_disk_work_locations(worker_id, args.input_name)
+        (input_key, widget_string) = get_widget_from_local_disk(worker_id, args.input_name)
+        if input_key is not None:
+            move_from_input_to_processing_local_disk(worker_id, input_key, args.input_name)
+        return input_key, widget_string
+
+    elif args.input_type == S3:
+        logging.debug("Widget_Worker_{}: Using S3 input with bucket: {}".format(worker_id, args.input_name))
+        (input_key, widget_string) = get_widget_from_s3_in_key_order(worker_id, args.input_name)
+        if input_key is not None:
+            move_from_input_to_processing_s3(worker_id, input_key, args.input_name)
+        return input_key, widget_string
+
+
+def move_to_completed_or_delete(worker_id, args, input_key):
+    """Move input widget to completed or delete if requested"""
+    if args.input_type == LOCAL_DISK:
+        if args.delete_completed:
+            delete_completed_widget_from_local_disk(worker_id, input_key, args.input_name)
+        else:
+            move_from_processing_to_completed_local_disk(worker_id, input_key, args.input_name)
+    elif args.input_type == S3:
+        if args.delete_completed:
+            delete_completed_widget_from_s3(worker_id, input_key, args.input_name)
+        else:
+            move_from_processing_to_completed_s3(worker_id, input_key, args.input_name)
