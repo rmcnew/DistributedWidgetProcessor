@@ -6,7 +6,7 @@ import sys
 from constants import *
 
 
-def parse_command_line():
+def parse_command_line(maybe_args=None):
     logging.info("Processing command line arguments")
     parser = argparse.ArgumentParser(description='Liquid Fortress Widget Processor')
     parser._optionals.title = "Command-line arguments"  # All of the arguments are required
@@ -54,7 +54,10 @@ def parse_command_line():
                         required=False,
                         default=2,
                         type=int)
-    args = parser.parse_args()
+    if maybe_args is not None:
+        args = parser.parse_args(maybe_args)
+    else:
+        args = parser.parse_args()
     if args.input_retry_max < 0:
         print("Illegal Parameter Value:  input-retry-max parameter cannot be negative!")
         parser.print_help()

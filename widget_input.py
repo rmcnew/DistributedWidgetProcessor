@@ -102,9 +102,8 @@ def rename_s3_object(worker_id, input_name, source, destination):
         s3.delete_object(Bucket=input_name, Key=source)
     except ClientError as the_client_error:
         if the_client_error.response[ERROR][CODE] == NO_SUCH_KEY:
-            logging.warning(
-                "Widget_Worker_{}: Could not move {} to {}; probably done by another worker ".format(worker_id, source,
-                                                                                                     destination))
+            logging.warning("Widget_Worker_{}: Could not move {} to {}; probably done by another worker "
+                            .format(worker_id, source, destination))
         else:
             raise
 

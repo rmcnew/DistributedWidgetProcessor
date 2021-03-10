@@ -14,3 +14,5 @@ def create_widget(worker_id, widget):
                        DESCRIPTION: widget[DESCRIPTION],
                        OTHER_ATTRIBUTES: widget[OTHER_ATTRIBUTES]}
     return widget_to_store
+
+# functions for update and delete later
