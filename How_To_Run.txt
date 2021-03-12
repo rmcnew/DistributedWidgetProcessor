@@ -49,14 +49,9 @@ This will install the Python packages needed to run LFWP in the virtualenv.
 LFWP is now ready to run!  Here are some things to try:
 
 A.  Run Unit Tests:
-1)  cd unit_tests
-2)  pytest 
 
-B.  Run Integration Tests:
-1)  python3 run_local.py ./integration_tests/minimal.json
-2)  Note that 
-Examine the log files to see what is happening.  You can use "tail -f log_file_name.log" to follow the log output.
-3)  Press Ctrl-C to end the integration test.
+python3 -m unittest unit_tests/test*.py
+
 
 
 == Running on Amazon Web Services (AWS) ==

@@ -27,22 +27,22 @@ def parse_command_line(maybe_args=None):
     parser = argparse.ArgumentParser(description='Liquid Fortress Widget Processor')
     parser._optionals.title = "Command-line arguments"  # All of the arguments are required
     parser.add_argument("--input-type",
-                        help="What type of widget input source should be used?  Valid choices are: LOCAL_DISK, S3",
+                        help="What type of widget input source should be used?  Valid choices are: LOCAL_DISK, S3, SQS",
                         action="store",
                         required=True,
-                        choices=[LOCAL_DISK, S3],
-                        default=LOCAL_DISK)
+                        choices=[LOCAL_DISK, S3, SQS],
+                        default=SQS)
     parser.add_argument("--input-name",
                         help="Name, path, or identifier of the widget input source",
                         action="store",
                         required=True)
     parser.add_argument("--output-type",
                         help="What type of widget output sink should be used?  Valid choices are: LOCAL_DISK, S3, "
-                             "DynamoDB",
+                             "DYNAMO_DB",
                         action="store",
                         required=True,
                         choices=[LOCAL_DISK, S3, DYNAMO_DB],
-                        default=LOCAL_DISK)
+                        default=S3)
     parser.add_argument("--output-name",
                         help="Name, path, or identifier of the widget output sink",
                         action="store",

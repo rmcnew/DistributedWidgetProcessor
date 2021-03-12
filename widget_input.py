@@ -179,6 +179,14 @@ def get_widget_from_s3_in_key_order(worker_id, input_name):
     return None, ""  # If all the other workers got the keys before us, the S3_MAX_KEYS_TO_LIST needs to be bigger
 
 
+# SQS
+def get_widget_from_sqs(worker_id, args):
+    """Get widget from the specified SQS queue"""
+    sqs = boto3.client('sqs')
+    response = sqs.receive_message(QueueUrl=args.input_name, WaitTimeSeconds=SQS_WAIT_TIME)
+    
+
+
 # main widget_input functions #
 def get_widget(worker_id, args):
     """Get widget from input source"""
@@ -197,6 +205,9 @@ def get_widget(worker_id, args):
         if input_key is not None:
             move_from_input_to_processing_s3(worker_id, input_key, args.input_name)
         return input_key, widget_string
+
+    elif args.input_type == SQS:
+        logging.debug("Widget_Worker_{}: Using SQS input with queue: {}".format(worker_id, args.input_name))
 
 
 def move_to_completed_or_delete(worker_id, args, input_key):

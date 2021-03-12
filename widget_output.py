@@ -44,6 +44,7 @@ def put_widget_to_local_disk(worker_id, output_name, widget_id, widget_owner, wi
         file.write(widget)
 
 
+# S3
 def put_widget_to_s3(worker_id, output_name, widget_id, widget_owner, widget):
     """Put the widget in the given S3 bucket using the prefix scheme:  widgets/{owner}/{widget_id}"""
     logging.info(
@@ -55,6 +56,7 @@ def put_widget_to_s3(worker_id, output_name, widget_id, widget_owner, widget):
     s3.put_object(Bucket=output_name, Key=output_key, Body=widget.encode(UTF8))
 
 
+# Dynamo DB
 def convert_widget_to_dynamo_db_schema(worker_id, widget):
     """Unpack the widget to match the Dynamo DB table schema"""
     logging.debug(

@@ -81,7 +81,7 @@ class CommandLineParserTestCases(unittest.TestCase):
             command_line_parser.parse_command_line(test_args)
         self.assertRegexpMatches(
             mock_stderr.getvalue(),
-            r"--input-type {LOCAL_DISK,S3}")
+            r"--input-type {LOCAL_DISK,S3,SQS}")
 
     @patch('sys.stderr', new_callable=StringIO)
     def test_output_type_valid(self, mock_stderr):
