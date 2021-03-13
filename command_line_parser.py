@@ -23,28 +23,26 @@ from constants import *
 
 
 def parse_command_line(maybe_args=None):
-    logging.info("Processing command line arguments")
+    """Parse command line arguments for process_widgets main entry point"""
+    logging.info("Processing process_widgets command line arguments")
     parser = argparse.ArgumentParser(description='Liquid Fortress Widget Processor')
     parser._optionals.title = "Command-line arguments"  # All of the arguments are required
     parser.add_argument("--input-type",
-                        help="What type of widget input source should be used?  Valid choices are: LOCAL_DISK, S3, SQS",
+                        help="What type of widget input source should be used?  Valid choices are: S3, SQS",
                         action="store",
                         required=True,
-                        choices=[LOCAL_DISK, S3, SQS],
-                        default=SQS)
+                        choices=[S3, SQS])
     parser.add_argument("--input-name",
-                        help="Name, path, or identifier of the widget input source",
+                        help="Bucket name or SQS queue URL for the widget input source",
                         action="store",
                         required=True)
     parser.add_argument("--output-type",
-                        help="What type of widget output sink should be used?  Valid choices are: LOCAL_DISK, S3, "
-                             "DYNAMO_DB",
+                        help="What type of widget output sink should be used?  Valid choices are: S3, DYNAMO_DB",
                         action="store",
                         required=True,
-                        choices=[LOCAL_DISK, S3, DYNAMO_DB],
-                        default=S3)
+                        choices=[S3, DYNAMO_DB])
     parser.add_argument("--output-name",
-                        help="Name, path, or identifier of the widget output sink",
+                        help="Bucket name, or Dynamo DB table name for the widget output sink",
                         action="store",
                         required=True)
     parser.add_argument("--parallel",
@@ -53,11 +51,6 @@ def parse_command_line(maybe_args=None):
                         required=False,
                         default=1,
                         type=int)
-    parser.add_argument("--delete-completed",
-                        help="Delete widget requests after they are completed",
-                        action="store_true",
-                        required=False,
-                        default=False)
     parser.add_argument("--input-retry-max",
                         help="Max number of input poll retries before quitting. Must be positive or 0.",
                         action="store",
@@ -83,3 +76,44 @@ def parse_command_line(maybe_args=None):
         parser.print_help()
         sys.exit(os.EX_USAGE)
     return args
+
+
+def enqueue_worker_parse_command_line(maybe_args=None):
+    """Parse command line arguments for Enqueue Worker"""
+    logging.info("Processing Enqueue Worker command line arguments")
+    parser = argparse.ArgumentParser(description='Liquid Fortress Widget Processor - Enqueue Worker')
+    parser._optionals.title = "Command-line arguments"  # All of the arguments are required
+    parser.add_argument("--bucket",
+                        help="S3 bucket name for the widget input source",
+                        action="store",
+                        required=True)
+    parser.add_argument("--queue",
+                        help="SQS queue URL where widgets should be sent",
+                        action="store",
+                        required=True)
+    parser.add_argument("--input-retry-max",
+                        help="Max number of input poll retries before quitting. Must be positive or 0.",
+                        action="store",
+                        required=False,
+                        default=3,
+                        type=int)
+    parser.add_argument("--input-retry-sleep",
+                        help="How much time in seconds to wait before retrying input poll?  Must be positive or 0.",
+                        action="store",
+                        required=False,
+                        default=2,
+                        type=int)
+    if maybe_args is not None:
+        args = parser.parse_args(maybe_args)
+    else:
+        args = parser.parse_args()
+    if args.input_retry_max < 0:
+        print("Illegal Parameter Value:  input-retry-max parameter cannot be negative!")
+        parser.print_help()
+        sys.exit(os.EX_USAGE)
+    if args.input_retry_sleep < 0:
+        print("Illegal Parameter Value:  input-retry-sleep parameter cannot be negative!")
+        parser.print_help()
+        sys.exit(os.EX_USAGE)
+    return args
+

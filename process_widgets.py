@@ -18,7 +18,8 @@
 import logging
 from multiprocessing import Process
 
-import command_line_parser
+import logger
+from command_line_parser import parse_command_line
 from widget_processor import process_widgets
 
 workers = []
@@ -26,15 +27,12 @@ workers = []
 
 def main():
     # initialize logging
-    logging.basicConfig(format='%(asctime)s [%(levelname)s] %(filename)s:%(lineno)d : %(message)s',
-                        filename="Process_Widgets.log",
-                        filemode="w",
-                        level=logging.INFO)
+    logger.init("Process_Widgets")
     # process command line arguments
-    args = command_line_parser.parse_command_line()
+    args = parse_command_line()
     # spin up worker processes to do parallel widget processing
     if args.parallel and args.parallel > 1:
-        logging.info("Starting {} parallel workers to process widgets".format(args.parallel))
+        logging.info(f"Starting {args.parallel} parallel workers to process widgets")
         for worker_id in range(args.parallel):
             worker = Process(target=process_widgets, args=(worker_id, args))
             worker.start()

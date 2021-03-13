@@ -29,7 +29,7 @@ def create_widget(worker_id, widget):
     """Create a widget from a widget create request"""
     widget_id = widget[WIDGETID]
     widget_owner = widget[OWNER].replace(" ", "-")
-    logging.debug("Widget_Worker_{}: Found widget_id: {} and owner: {}".format(worker_id, widget_id, widget_owner))
+    logging.info("Widget_Worker_{worker_id}: Found widget_id: {widget_id} and owner: {widget_owner}")
     widget_to_store = {WIDGET_ID: widget_id,
                        OWNER: widget_owner,
                        LABEL: widget[LABEL],
@@ -48,24 +48,23 @@ def delete_widget(worker_id, widget):
 
 # functions for update and delete later
 def process_widgets(worker_id, args):
-    logging.info("Widget_Worker_{}: starting up".format(worker_id))
+    logging.info(f"Widget_Worker_{worker_id}: starting up")
     input_retries_left = args.input_retry_max
 
     while True:
         (input_key, widget_string) = widget_input.get_widget(worker_id, args)
         if input_key is None:  # no widgets ready
             if input_retries_left > 0:
-                logging.info("Widget_Worker_{}: No widgets ready for processing.  Sleeping {} seconds."
-                             .format(worker_id, args.input_retry_sleep))
+                logging.info(f"Widget_Worker_{worker_id}: No widgets ready for processing.  Sleeping {args.input_retry_sleep} seconds.")
                 time.sleep(args.input_retry_sleep)
                 input_retries_left = input_retries_left - 1
-                logging.info("Widget_Worker_{}: {} retries left".format(worker_id, input_retries_left))
+                logging.info(f"Widget_Worker_{worker_id}: {input_retries_left} retries left")
                 continue
             else:
-                logging.info("Widget_Worker_{}: No retries left.  Exiting.".format(worker_id))
+                logging.info(f"Widget_Worker_{worker_id}: No retries left.  Exiting.")
                 break
         else:  # parse widget request and process it
-            logging.info("Widget_Worker_{}: processing widget: {}".format(worker_id, widget_string))
+            logging.info(f"Widget_Worker_{worker_id}: processing widget: {widget_string}")
             widget = json.loads(widget_string)
             # only handle CREATE requests for now, move other requests to completed
             if widget[TYPE] == CREATE:

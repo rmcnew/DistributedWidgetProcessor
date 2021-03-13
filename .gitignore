@@ -1,4 +1,5 @@
 Process_Widgets.log
+Enqueue_Worker.log
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -127,3 +128,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# vim temp files
+.*.sw?
