@@ -17,21 +17,26 @@
 # Functions to handle getting a widget from various input sources
 import logging
 
-import boto3
 from constants import *
 
 
 # SQS
-def get_widget_requests_from_sqs(worker_id, args):
+def get_widget_requests_from_sqs(worker_id, sqs, args):
     """Get widget requests from the specified SQS queue"""
-    messages = []
-    sqs = boto3.client('sqs')
+    logging.info(f"Widget_Worker_{worker_id}:  Getting {SQS_MESSAGE_COUNT} message(s) from SQS queue: {args.input_name}")
+    messages = {}
     response = sqs.receive_message(QueueUrl=args.input_name, WaitTimeSeconds=SQS_WAIT_TIME, MaxNumberOfMessages=SQS_MESSAGE_COUNT)
     if MESSAGES in response:
         response_messages = response[MESSAGES]  
         for response_message in response_messages:
-            if BODY in response_message:
-                messages.append(response_message[BODY]);
+            if RECEIPT_HANDLE in response_message and BODY in response_message:
+                messages[RECEIPT_HANDLE] = response_message[BODY]
+            else:
+                logging.error(f"Widget_Worker_{worker_id}:  Receipt_Handle or Body not found in message: {response_message}")
     return messages
 
+def delete_widget_request_from_sqs(worker_id, sqs, args, message_handle):
+    """Delete widget request message from SQS"""
+    logging.info(f"Widget_Worker_{worker_id}:  Deleting SQS message with message_handle {message_handle}")
+    sqs.delete_message(QueueUrl=args.input_name, ReceiptHandle=message_handle)
 
