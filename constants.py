@@ -57,3 +57,5 @@ WEB_BUCKET = "usu-cs5260-homework-assignment-two-web"
 WIDGETID = "widgetId"
 WIDGET_ID = "widget_id"
 WIDGETS = "widgets"
+# structures using the above constants
+NON_OTHER_ATTRIBUTES = [WIDGET_ID, OWNER, LABEL, DESCRIPTION]

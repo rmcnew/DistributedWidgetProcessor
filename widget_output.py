@@ -30,9 +30,9 @@ def put_widget_to_s3(worker_id, s3, output_name, widget):
     widget_id = widget[WIDGET_ID]
     widget_owner = widget[OWNER]
     logging.info(f"Widget_Worker_{worker_id}: Putting widget_id: {widget_id} for owner: {widget_owner} in S3 bucket {output_name}")
-    widget_to_store_string = json.dumps(widget_to_store)
+    widget_string = json.dumps(widget)
     output_key = f"{WIDGETS}/{widget_owner}/{widget_id}"
-    s3.put_object(Bucket=output_name, Key=output_key, Body=widget_to_store_string.encode(UTF8))
+    s3.put_object(Bucket=output_name, Key=output_key, Body=widget_string.encode(UTF8))
 
 
 # Dynamo DB
@@ -49,6 +49,15 @@ def flatten_widget(worker_id, widget):
             flat_widget[key] = value
     return flat_widget
 
+def unflatten_widget(worker_id, flat_widget):
+    """Unflatten widget structure"""
+    widget = {OTHER_ATTRIBUTES: {}}
+    for key, value in flat_widget.items():
+        if key in NON_OTHER_ATTRIBUTES:
+            widget[key] = value
+        else:
+            widget[OTHER_ATTRIBUTES][key] = value
+    return widget
 
 def convert_widget_to_dynamo_db_schema(worker_id, widget):
     """Unpack the widget to match the Dynamo DB table schema"""
@@ -82,21 +91,18 @@ def put_widget(worker_id, s3, dynamodb, args, widget):
 
 # ************************* Update widgets ************************* 
 # S3
-def update_widget(old_widget, new_widget):
+def update_json_widget(worker_id, old_widget, new_widget):
     """Update a JSON-derived widget based on business rules in Homework 2"""
-    for key, value in new_widget.items():
-        if value == "":
-            del old_widget[key]
-        elif key == OTHER_ATTRIBUTES:
-            for kv_dict in value:
-                for oa_key, oa_value in kv_dict.items():
-                    if oa_value == "":
-                        del old_widget[OTHER_ATTRIBUTES][oa_key]
-                    else:
-                        old_widget[OTHER_ATTRIBUTES][oa_key] = value[oa_key]
-        elif key != WIDGET_ID and key != OWNER:
-            old_widget[key] = new_widget[key]
-    return old_widget
+    flat_old_widget = flatten_widget(worker_id, old_widget)
+    flat_new_widget = flatten_widget(worker_id, new_widget)
+    for key, value in flat_new_widget.items():
+        if key != WIDGET_ID and key != OWNER:
+            if value == "" and key in flat_old_widget:
+                del flat_old_widget[key]
+            else:
+                flat_old_widget[key] = flat_new_widget[key]
+    updated_widget = unflatten_widget(worker_id, flat_old_widget)
+    return updated_widget
 
 def update_widget_in_s3(worker_id, s3, output_name, widget):
     """Update the widget in S3 (if it exists)"""
@@ -106,11 +112,11 @@ def update_widget_in_s3(worker_id, s3, output_name, widget):
     key = f"{WIDGETS}/{widget_owner}/{widget_id}"
     try:
         # get the previously stored widget 
-        response = s3.get_object(Bucket=input_name, Key=key)
+        response = s3.get_object(Bucket=output_name, Key=key)
         old_widget_string = response[BODY].read().decode(UTF8)
         old_widget = json.loads(old_widget_string)
         # update the widget
-        updated_widget = update_widget(old_widget, new_widget)
+        updated_widget = update_json_widget(worker_id, old_widget, widget)
         updated_widget_string = json.dumps(updated_widget)
         # persist the updated widget to S3
         s3.put_object(Bucket=output_name, Key=key, Body=updated_widget_string.encode(UTF8))
@@ -161,7 +167,7 @@ def update_widget_in_dynamo_db(worker_id, dynamodb, output_name, widget):
 def update_widget(worker_id, s3, dynamodb, args, widget):
     """Update the widget at the specified output"""
     if args.output_type == S3:
-        update_widget_in_s3(worker_id, s3, args.output_name, widget_id, widget_owner, widget_string)
+        update_widget_in_s3(worker_id, s3, args.output_name, widget)
 
     elif args.output_type == DYNAMO_DB:
         update_widget_in_dynamo_db(worker_id, dynamodb, args.output_name, widget)

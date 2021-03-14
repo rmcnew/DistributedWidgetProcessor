@@ -16,6 +16,7 @@
 
 # functions to handle getting widget requests from S3 and enqueuing in SQS
 import logging
+import time
 
 import boto3
 from botocore.exceptions import ClientError
@@ -59,11 +60,11 @@ def main():
             enqueue_object_list(s3, sqs, args, maybe_objects[CONTENTS])
         
         # no widgets ready
-        elif input_retries_left > 0:
+        elif retries_left > 0:
             logging.info(f"Enqueue_Worker: No widgets ready for processing.  Sleeping {args.input_retry_sleep} seconds.")
             time.sleep(args.input_retry_sleep)
             retries_left = retries_left - 1
-            logging.info(f"Enqueue_Worker: {input_retries_left} retries left")
+            logging.info(f"Enqueue_Worker: {retries_left} retries left")
             continue
         else:
             logging.info(f"Enqueue_Worker: No widget requests found and no retries left.  Exiting.")
