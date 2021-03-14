@@ -41,22 +41,27 @@ def flatten_widget(worker_id, widget):
     flat_widget = {}
     for key, value in widget.items():
         if key == OTHER_ATTRIBUTES:
-            logging.debug("Widget_Worker_{worker_id}: otherAttributes is: {value}")
+            logging.debug(f"Widget_Worker_{worker_id}: otherAttributes is: {value}")
             for kv_dict in value:
-                logging.debug(f"Widget_Worker_{worker_id}: kv_dict is: {kv_dict}")
-                flat_widget[kv_dict[NAME]] = kv_dict[VALUE]
+                if isinstance(kv_dict, dict):
+                    logging.debug(f"Widget_Worker_{worker_id}: kv_dict is: {kv_dict}")
+                    flat_widget[kv_dict[NAME]] = kv_dict[VALUE]
+                else:
+                    logging.warning(f"Widget_Worker_{worker_id}: kv_dict is NOT a dict: {kv_dict}")
+
         else:
             flat_widget[key] = value
     return flat_widget
 
 def unflatten_widget(worker_id, flat_widget):
     """Unflatten widget structure"""
-    widget = {OTHER_ATTRIBUTES: {}}
+    widget = {OTHER_ATTRIBUTES: []}
     for key, value in flat_widget.items():
         if key in NON_OTHER_ATTRIBUTES:
             widget[key] = value
         else:
-            widget[OTHER_ATTRIBUTES][key] = value
+            other = {NAME: key, VALUE: value}
+            widget[OTHER_ATTRIBUTES].append(other)
     return widget
 
 def convert_widget_to_dynamo_db_schema(worker_id, widget):
