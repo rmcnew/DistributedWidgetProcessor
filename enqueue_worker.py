@@ -35,7 +35,7 @@ def enqueue_object_list(s3, sqs, args, object_list):
         widget_request = response[BODY].read().decode(UTF8)
         # enqueue widget request
         logging.info(f"Enqueue_Worker: enqueuing widget request: {widget_request}")
-        sqs.send_message(QueueUrl=args.queue, MessageBody=widget_request);
+        sqs.send_message(QueueUrl=args.queue, MessageBody=widget_request)
         # delete widget in s3
         logging.info(f"Enqueue_Worker: Deleting enqueued widget from S3: {key}")
         s3.delete_object(Bucket=args.bucket, Key=key)

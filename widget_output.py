@@ -19,22 +19,9 @@ import json
 import logging
 
 from constants import *
+from botocore.exceptions import ClientError
 
 
-# ************************* See if widget exists ************************* 
-# S3
-def widget_exists_in_s3(worker_id, s3, output_name, widget):
-    """See if the widget exists in S3"""
-    widget_id = widget[WIDGET_ID]
-    widget_owner = widget[OWNER]
-    logging.info(f"Widget_Worker_{worker_id}: Check existence of widget_id: {widget_id} for owner: {widget_owner} in S3 bucket {output_name}")
-
-# Dynamo DB
-def widget_exists_in_dynamo_db(worker_id, dynamodb, output_name, widget):
-    """See if the widget exists in Dynamo DB"""
-    widget_id = widget[WIDGET_ID]
-    widget_owner = widget[OWNER]
-    logging.info(f"Widget_Worker_{worker_id}: Check existence of widget_id: {widget_id} for owner: {widget_owner} in Dynamo DB table {output_name}")
 
 # ************************* Create widgets ************************* 
 # S3
@@ -49,10 +36,8 @@ def put_widget_to_s3(worker_id, s3, output_name, widget):
 
 
 # Dynamo DB
-def convert_widget_to_dynamo_db_schema(worker_id, widget):
-    """Unpack the widget to match the Dynamo DB table schema"""
-    logging.info(f"Widget_Worker_{worker_id}: Converting widget to Dynamo DB schema; input widget is {widget}")
-    dynamo_request_widget = {}
+def flatten_widget(worker_id, widget):
+    """Flatten widget structure for Dynamo DB use"""
     flat_widget = {}
     for key, value in widget.items():
         if key == OTHER_ATTRIBUTES:
@@ -62,9 +47,17 @@ def convert_widget_to_dynamo_db_schema(worker_id, widget):
                 flat_widget[kv_dict[NAME]] = kv_dict[VALUE]
         else:
             flat_widget[key] = value
+    return flat_widget
+
+
+def convert_widget_to_dynamo_db_schema(worker_id, widget):
+    """Unpack the widget to match the Dynamo DB table schema"""
+    logging.info(f"Widget_Worker_{worker_id}: Converting widget to Dynamo DB schema; input widget is {widget}")
+    dynamo_request_widget = {}
+    flat_widget = flatten_widget(worker_id, widget)
     for key, value in flat_widget.items():
         dynamo_request_widget[key] = {S: value}
-    logging.debug(f"Widget_Worker_{worker_id}: Converted Dynamo DB widget is: {dynamo_request_widget}")
+    logging.info(f"Widget_Worker_{worker_id}: Converted Dynamo DB widget is: {dynamo_request_widget}")
     return dynamo_request_widget
 
 
@@ -89,19 +82,80 @@ def put_widget(worker_id, s3, dynamodb, args, widget):
 
 # ************************* Update widgets ************************* 
 # S3
+def update_widget(old_widget, new_widget):
+    """Update a JSON-derived widget based on business rules in Homework 2"""
+    for key, value in new_widget.items():
+        if value == "":
+            del old_widget[key]
+        elif key == OTHER_ATTRIBUTES:
+            for kv_dict in value:
+                for oa_key, oa_value in kv_dict.items():
+                    if oa_value == "":
+                        del old_widget[OTHER_ATTRIBUTES][oa_key]
+                    else:
+                        old_widget[OTHER_ATTRIBUTES][oa_key] = value[oa_key]
+        elif key != WIDGET_ID and key != OWNER:
+            old_widget[key] = new_widget[key]
+    return old_widget
+
 def update_widget_in_s3(worker_id, s3, output_name, widget):
     """Update the widget in S3 (if it exists)"""
     widget_id = widget[WIDGET_ID]
     widget_owner = widget[OWNER]
-    widget_string = json.dumps(widget)
-    logging.info(f"Widget_Worker_{worker_id}: Updating widget with widget_id {widget_id} in S3 bucket: {args.output_name}")
+    logging.info(f"Widget_Worker_{worker_id}: Updating widget with widget_id {widget_id} in S3 bucket: {output_name}")
+    key = f"{WIDGETS}/{widget_owner}/{widget_id}"
+    try:
+        # get the previously stored widget 
+        response = s3.get_object(Bucket=input_name, Key=key)
+        old_widget_string = response[BODY].read().decode(UTF8)
+        old_widget = json.loads(old_widget_string)
+        # update the widget
+        updated_widget = update_widget(old_widget, new_widget)
+        updated_widget_string = json.dumps(updated_widget)
+        # persist the updated widget to S3
+        s3.put_object(Bucket=output_name, Key=key, Body=updated_widget_string.encode(UTF8))
+    except ClientError as the_client_error:  
+        if the_client_error.response[ERROR][CODE] == NO_SUCH_KEY:
+            logging.warning(f"Widget_Worker_{worker_id}: Could not find widget_id {widget_id} for owner {widget_owner} for update using S3 key {key}; continuing processing")
+        else: 
+            raise
 
 # Dynamo DB
+def convert_widget_to_dynamo_db_update_expression(worker_id, widget):
+    """Convert update widget to update expression"""
+    # this API is ugly
+    first=True
+    update_expression = "SET "
+    expression_attribute_names = {}
+    expression_attribute_values = {}
+    for key, value in widget.items():
+        if key != WIDGET_ID and key != OWNER:
+            sanitized_key = key.replace("-", "_")
+            attribute_name = f"#attr{sanitized_key}"
+            symbol = f":new{sanitized_key}"
+            if first:
+                first = False
+                update_expression += f"{attribute_name} = {symbol}"
+            else:
+                update_expression += f", {attribute_name} = {symbol}"
+            expression_attribute_values[symbol] = {S: value}
+            expression_attribute_names[attribute_name] = key
+    return update_expression, expression_attribute_names, expression_attribute_values
+
 def update_widget_in_dynamo_db(worker_id, dynamodb, output_name, widget):
     """Update the widget in Dynamo DB (if it exists)"""
     widget_id = widget[WIDGET_ID]
     widget_owner = widget[OWNER]
-    logging.info(f"Widget_Worker_{worker_id}: Updating widget with widget_id {widget_id} in DYNAMO DB table: {args.output_name}")
+    logging.info(f"Widget_Worker_{worker_id}: Updating widget with widget_id {widget_id} in DYNAMO DB table: {output_name}")
+    key = {WIDGET_ID: {S: widget_id}, OWNER: {S: widget_owner}}
+    flat_widget = flatten_widget(worker_id, widget)
+    (update_expression, expression_attribute_names, expression_attribute_values) = convert_widget_to_dynamo_db_update_expression(worker_id, flat_widget)
+    logging.info(f"Widget_Worker_{worker_id}: Updating Dynamo DB widget: key {key}; update_expression {update_expression}; expression_attribute_names {expression_attribute_names}; expression_attribute_values {expression_attribute_values}")
+    dynamodb.update_item(TableName=output_name, 
+                         Key=key, 
+                         UpdateExpression=update_expression, 
+                         ExpressionAttributeNames=expression_attribute_names, 
+                         ExpressionAttributeValues=expression_attribute_values) 
 
 # update widget entry point
 def update_widget(worker_id, s3, dynamodb, args, widget):
@@ -119,7 +173,7 @@ def delete_widget_from_s3(worker_id, s3, output_name, widget):
     """Delete the widget from S3"""
     widget_id = widget[WIDGET_ID]
     widget_owner = widget[OWNER]
-    logging.info(f"Widget_Worker_{worker_id}: Deleting widget with widget_id {widget_id} in S3 bucket: {args.output_name}")
+    logging.info(f"Widget_Worker_{worker_id}: Deleting widget with widget_id {widget_id} in S3 bucket: {output_name}")
     key = f"{WIDGETS}/{widget_owner}/{widget_id}"
     s3.delete_object(Bucket=output_name, Key=key)
 
@@ -128,7 +182,7 @@ def delete_widget_from_dynamo_db(worker_id, dynamodb, output_name, widget):
     """Delete the widget from Dynamo DB"""
     widget_id = widget[WIDGET_ID]
     widget_owner = widget[OWNER]
-    logging.info(f"Widget_Worker_{worker_id}: Deleting widget with widget_id {widget_id} in DYNAMO DB table: {args.output_name}")
+    logging.info(f"Widget_Worker_{worker_id}: Deleting widget with widget_id {widget_id} in DYNAMO DB table: {output_name}")
     key = {WIDGET_ID: {S: widget_id}, OWNER: {S: widget_owner}}
     dynamodb.delete_item(TableName=output_name, Key=key)
 

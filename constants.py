@@ -35,6 +35,7 @@ LOCAL_DISK = "LOCAL_DISK"
 MESSAGES = 'Messages'
 NAME = "name"
 NO_SUCH_KEY = 'NoSuchKey'
+NOT_FOUND = "404"
 OWNER = "owner"
 OTHER_ATTRIBUTES = "otherAttributes"
 PROCESSING_LOCATION = "processing"
