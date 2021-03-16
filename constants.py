@@ -39,6 +39,7 @@ NOT_FOUND = "404"
 OWNER = "owner"
 OTHER_ATTRIBUTES = "otherAttributes"
 PROCESSING_LOCATION = "processing"
+QUEUE_URL = 'QueueUrl'
 RECEIPT_HANDLE = 'ReceiptHandle'
 RETRY_PROCESSING_COUNT = 3
 REQUEST_BUCKET = "usu-cs5260-homework-assignment-two-requests"

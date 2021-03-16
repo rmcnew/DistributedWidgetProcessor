@@ -21,55 +21,45 @@ import time
 import boto3
 from botocore.exceptions import ClientError
 
-import logger
 from constants import *
-from command_line_parser import enqueue_worker_parse_command_line
 
 
-def enqueue_object_list(s3, sqs, args, object_list):
+def enqueue_object_list(s3, sqs, bucket, queue_url, object_list):
     """Extract object list from S3, enqueue in SQS, delete from S3"""
     for object_info in object_list:
         # get s3 key and widget request
         key = object_info[KEY]
         logging.info(f"Enqueue_Worker: Getting widget for key {key}")
-        response = s3.get_object(Bucket=args.bucket, Key=key)
+        response = s3.get_object(Bucket=bucket, Key=key)
         widget_request = response[BODY].read().decode(UTF8)
         # enqueue widget request
         logging.info(f"Enqueue_Worker: enqueuing widget request: {widget_request}")
-        sqs.send_message(QueueUrl=args.queue, MessageBody=widget_request)
+        sqs.send_message(QueueUrl=queue_url, MessageBody=widget_request)
         # delete widget in s3
         logging.info(f"Enqueue_Worker: Deleting enqueued widget from S3: {key}")
-        s3.delete_object(Bucket=args.bucket, Key=key)
+        s3.delete_object(Bucket=bucket, Key=key)
 
 
-def main():
+def s3_bucket_to_sqs(bucket, queue_url, retry_max, retry_sleep):
     """Entry point for Enqueue Worker"""
-    # initialize logging
-    logger.init("Enqueue_Worker")
-    # process command line arguments to get S3 bucket name and SQS queue URL
-    args = enqueue_worker_parse_command_line()
     # create AWS clients
     s3 = boto3.client('s3')
     sqs = boto3.client('sqs')
 
-    retries_left = args.input_retry_max
+    retries_left = retry_max
 
     while True:
-        maybe_objects = s3.list_objects_v2(Bucket=args.bucket, MaxKeys=S3_MAX_KEYS_TO_LIST, Delimiter="/")
+        maybe_objects = s3.list_objects_v2(Bucket=bucket, MaxKeys=S3_MAX_KEYS_TO_LIST, Delimiter="/")
         if CONTENTS in maybe_objects:
-            enqueue_object_list(s3, sqs, args, maybe_objects[CONTENTS])
+            enqueue_object_list(s3, sqs, bucket, queue_url, maybe_objects[CONTENTS])
         
         # no widgets ready
         elif retries_left > 0:
-            logging.info(f"Enqueue_Worker: No widgets ready for processing.  Sleeping {args.input_retry_sleep} seconds.")
-            time.sleep(args.input_retry_sleep)
+            logging.info(f"Enqueue_Worker: No widgets ready for processing.  Sleeping {retry_sleep} seconds.")
+            time.sleep(retry_sleep)
             retries_left = retries_left - 1
             logging.info(f"Enqueue_Worker: {retries_left} retries left")
             continue
         else:
             logging.info(f"Enqueue_Worker: No widget requests found and no retries left.  Exiting.")
             break
-
-
-if __name__ == '__main__':
-    main()

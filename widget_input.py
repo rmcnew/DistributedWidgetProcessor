@@ -16,6 +16,10 @@
 
 # Functions to handle getting a widget from various input sources
 import logging
+import random
+import string
+
+import boto3
 
 from constants import *
 
@@ -25,19 +29,39 @@ def get_widget_requests_from_sqs(worker_id, sqs, args):
     """Get widget requests from the specified SQS queue"""
     logging.info(f"Widget_Worker_{worker_id}: Getting {SQS_MESSAGE_COUNT} message(s) from SQS queue: {args.input_name}")
     messages = {}
-    response = sqs.receive_message(QueueUrl=args.input_name, WaitTimeSeconds=SQS_WAIT_TIME, MaxNumberOfMessages=SQS_MESSAGE_COUNT)
+    response = sqs.receive_message(QueueUrl=args.input_name, WaitTimeSeconds=SQS_WAIT_TIME,
+                                   MaxNumberOfMessages=SQS_MESSAGE_COUNT)
     if MESSAGES in response:
-        response_messages = response[MESSAGES]  
+        response_messages = response[MESSAGES]
         for response_message in response_messages:
             if RECEIPT_HANDLE in response_message and BODY in response_message:
                 receipt_handle = response_message[RECEIPT_HANDLE]
                 messages[receipt_handle] = response_message[BODY]
             else:
-                logging.error(f"Widget_Worker_{worker_id}: Receipt_Handle or Body not found in message: {response_message}")
+                logging.error(
+                    f"Widget_Worker_{worker_id}: Receipt_Handle or Body not found in message: {response_message}")
     return messages
+
 
 def delete_widget_request_from_sqs(worker_id, sqs, args, message_handle):
     """Delete widget request message from SQS"""
     logging.info(f"Widget_Worker_{worker_id}: Deleting SQS message with message_handle {message_handle}")
     sqs.delete_message(QueueUrl=args.input_name, ReceiptHandle=message_handle)
 
+
+def get_random_queue_name():
+    """Generate a random name for a temporary queue"""
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=20))
+
+
+def create_temporary_queue():
+    """Create a temporary SQS queue"""
+    sqs = boto3.client('sqs')
+    result = sqs.create_queue(QueueName=get_random_queue_name())
+    return result[QUEUE_URL]
+
+
+def delete_temporary_queue(queue_url):
+    """Delete a temporary SQS queue"""
+    sqs = boto3.client('sqs')
+    sqs.delete_queue(QueueUrl=queue_url)

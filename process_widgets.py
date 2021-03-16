@@ -21,15 +21,29 @@ from multiprocessing import Process
 import logger
 from command_line_parser import parse_command_line
 from widget_processor import process_widgets
+from enqueue_worker import s3_bucket_to_sqs
+from constants import *
+from widget_input import create_temporary_queue, delete_temporary_queue
 
 workers = []
 
 
 def main():
+    temp_queue = ""
     # initialize logging
     logger.init("Process_Widgets")
     # process command line arguments
     args = parse_command_line()
+    # spin up an enqueue worker if S3 is used as the input source
+    if args.input_type == S3:
+        temp_queue = create_temporary_queue()
+        nq_worker = Process(
+            target=s3_bucket_to_sqs,
+            args=(args.input_name, temp_queue, args.input_retry_max, args.input_retry_sleep)
+        )
+        nq_worker.start()
+        workers.append(nq_worker)
+        args.input_name = temp_queue
     # spin up worker processes to do parallel widget processing
     if args.parallel and args.parallel > 1:
         logging.info(f"Starting {args.parallel} parallel workers to process widgets")
@@ -44,6 +58,8 @@ def main():
     else:
         logging.info("Processing widgets in single process mode")
         process_widgets(0, args)
+    if args.input_type == S3:
+        delete_temporary_queue(temp_queue)
 
 
 if __name__ == '__main__':
