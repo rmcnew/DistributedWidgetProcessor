@@ -26,7 +26,7 @@ def parse_command_line(maybe_args=None):
     """Parse command line arguments for process_widgets main entry point"""
     logging.info("Processing process_widgets command line arguments")
     parser = argparse.ArgumentParser(description='Liquid Fortress Widget Processor')
-    parser._optionals.title = "Command-line arguments"  # All of the arguments are required
+    parser._optionals.title = "Command-line arguments"  # All of the arguments are required; overwrite the default title
     parser.add_argument("--input-type",
                         help="What type of widget input source should be used?  Valid choices are: S3, SQS",
                         action="store",

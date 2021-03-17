@@ -63,7 +63,7 @@ class CommandLineParserTestCases(unittest.TestCase):
         test_args = [
             '--input-type', 'S3',
             '--input-name', 'source_bucket',
-            '--output-type', 'LOCAL_DISK']
+            '--output-type', 'S3']
         with self.assertRaises(SystemExit):
             command_line_parser.parse_command_line(test_args)
         self.assertRegexpMatches(
@@ -75,13 +75,13 @@ class CommandLineParserTestCases(unittest.TestCase):
         test_args = [
             '--input-type', 'WEB'
             '--input-name', 'http://host.domain.tld/directory',
-            '--output-type', 'LOCAL_DISK',
-            '--output-name', '/path/to/the/files']
+            '--output-type', 'DYNAMO_DB',
+            '--output-name', 'my_table']
         with self.assertRaises(SystemExit):
             command_line_parser.parse_command_line(test_args)
         self.assertRegexpMatches(
             mock_stderr.getvalue(),
-            r"--input-type {LOCAL_DISK,S3,SQS}")
+            r"--input-type {S3,SQS}")
 
     @patch('sys.stderr', new_callable=StringIO)
     def test_output_type_valid(self, mock_stderr):
@@ -94,7 +94,7 @@ class CommandLineParserTestCases(unittest.TestCase):
             command_line_parser.parse_command_line(test_args)
         self.assertRegexpMatches(
             mock_stderr.getvalue(),
-            r"--output-type\s+{LOCAL_DISK,S3,DYNAMO_DB}")
+            r"--output-type\s+{S3,DYNAMO_DB}")
 
 
 if __name__ == '__main__':

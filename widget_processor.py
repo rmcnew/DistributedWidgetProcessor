@@ -20,9 +20,11 @@ import logging
 import time
 
 import boto3
-import widget_input
-import widget_output
-from constants import *
+
+from widget_input import delete_widget_request_from_sqs, get_widget_requests_from_sqs
+from widget_output import delete_widget, put_widget, update_widget
+from constants import WIDGETID, OWNER, DELETE, CREATE, UPDATE, REQUEST_ID, WIDGET_ID, TYPE
+
 
 def normalize_widget(worker_id, widget):
     """Replace spaces with dashes in owner; 
@@ -41,8 +43,28 @@ def normalize_widget(worker_id, widget):
     return normalized_widget
 
 
-# functions for update and delete later
+def process_widget(worker_id, args, s3, dynamodb, widget_request_str):
+    """Process a single widget"""
+    # parse widget request and process it
+    widget = json.loads(widget_request_str)
+    # only handle CREATE requests for now, move other requests to completed
+    if widget[TYPE] == CREATE:
+        # create the widget
+        widget_to_store = normalize_widget(worker_id, widget)
+        put_widget(worker_id, s3, dynamodb, args, widget_to_store)
+    elif widget[TYPE] == UPDATE:
+        # update the widget
+        widget_to_update = normalize_widget(worker_id, widget)
+        update_widget(worker_id, s3, dynamodb, args, widget_to_update)
+    elif widget[TYPE] == DELETE:
+        # delete the widget
+        widget_to_delete = normalize_widget(worker_id, widget)
+        if WIDGET_ID in widget_to_delete and OWNER in widget_to_delete:
+            delete_widget(worker_id, s3, dynamodb, args, widget_to_delete)
+
+
 def process_widgets(worker_id, args):
+    """Process all widgets in the SQS queue"""
     logging.info(f"Widget_Worker_{worker_id}: starting up")
     # create AWS clients
     sqs = boto3.client('sqs')
@@ -53,31 +75,20 @@ def process_widgets(worker_id, args):
 
     while True:
         # get widget requests from SQS
-        widget_requests = widget_input.get_widget_requests_from_sqs(worker_id, sqs, args)
-        if len(widget_requests) > 0:  
+        widget_requests = get_widget_requests_from_sqs(worker_id, sqs, args)
+        if len(widget_requests) > 0:
             for message_handle, widget_request_str in widget_requests.items():
-                logging.info(f"Widget_Worker_{worker_id}: processing widget: {widget_request_str}  with message_handle: {message_handle}")
-                # parse widget request and process it
-                widget = json.loads(widget_request_str)
-                # only handle CREATE requests for now, move other requests to completed
-                if widget[TYPE] == CREATE:
-                    # create the widget
-                    widget_to_store = normalize_widget(worker_id, widget)
-                    widget_output.put_widget(worker_id, s3, dynamodb, args, widget_to_store)
-                elif widget[TYPE] == UPDATE:
-                    # update the widget
-                    widget_to_update = normalize_widget(worker_id, widget)
-                    widget_output.update_widget(worker_id, s3, dynamodb, args, widget_to_update)
-                elif widget[TYPE] == DELETE:
-                    # delete the widget
-                    widget_to_delete = normalize_widget(worker_id, widget)
-                    if WIDGET_ID in widget_to_delete and OWNER in widget_to_delete: 
-                        widget_output.delete_widget(worker_id, s3, dynamodb, args, widget_to_delete)
+                logging.info(
+                    f"Widget_Worker_{worker_id}: processing widget: {widget_request_str} "
+                    f"with message_handle: {message_handle}")
+                process_widget(worker_id, args, s3, dynamodb, widget_request_str)
                 # delete the widget request
-                widget_input.delete_widget_request_from_sqs(worker_id, sqs, args, message_handle)
-        else: # no widgets to process right now
+                delete_widget_request_from_sqs(worker_id, sqs, args, message_handle)
+        else:  # no widgets to process right now
             if input_retries_left > 0:
-                logging.info(f"Widget_Worker_{worker_id}: No widgets ready for processing.  Sleeping {args.input_retry_sleep} seconds.")
+                logging.info(
+                    f"Widget_Worker_{worker_id}: No widgets ready for processing.  "
+                    f"Sleeping {args.input_retry_sleep} seconds.")
                 time.sleep(args.input_retry_sleep)
                 input_retries_left = input_retries_left - 1
                 logging.info(f"Widget_Worker_{worker_id}: {input_retries_left} retries left")

@@ -18,48 +18,67 @@
 import logging
 from multiprocessing import Process
 
-import logger
 from command_line_parser import parse_command_line
-from widget_processor import process_widgets
 from enqueue_worker import s3_bucket_to_sqs
-from constants import *
+from logger import init
 from widget_input import create_temporary_queue, delete_temporary_queue
+from widget_processor import process_widgets
+from constants import S3
 
+# globals, but only used by functions within this file
 workers = []
+temp_queue = None
+
+
+def start_enqueue_worker(args):
+    """Create a child process to transfer widget requests from S3 to SQS"""
+    logging.info("Creating temporary queue and enqueue worker")
+    global temp_queue
+    temp_queue = create_temporary_queue()
+    nq_worker = Process(
+        target=s3_bucket_to_sqs,
+        args=(args.input_name, temp_queue, args.input_retry_max, args.input_retry_sleep)
+    )
+    nq_worker.start()
+    workers.append(nq_worker)
+
+
+def start_widget_workers(args):
+    """Create child processes to parallelize widget processing"""
+    logging.info(f"Starting {args.parallel} parallel workers to process widgets")
+    for worker_id in range(args.parallel):
+        worker = Process(target=process_widgets, args=(worker_id, args))
+        worker.start()
+        workers.append(worker)
+
+
+def wait_for_workers_to_finish():
+    logging.info("Workers started.  Waiting for completion")
+    for worker in workers:
+        worker.join()
+    # clean up temp queue if needed
+    if temp_queue is not None:
+        delete_temporary_queue(temp_queue)
 
 
 def main():
-    temp_queue = ""
+    """Main entry point for Liquid Fortress Widget Processor"""
     # initialize logging
-    logger.init("Process_Widgets")
+    init("Process_Widgets")
     # process command line arguments
     args = parse_command_line()
     # spin up an enqueue worker if S3 is used as the input source
     if args.input_type == S3:
-        temp_queue = create_temporary_queue()
-        nq_worker = Process(
-            target=s3_bucket_to_sqs,
-            args=(args.input_name, temp_queue, args.input_retry_max, args.input_retry_sleep)
-        )
-        nq_worker.start()
-        workers.append(nq_worker)
+        start_enqueue_worker(args)
         args.input_name = temp_queue
-    # spin up worker processes to do parallel widget processing
+    # if parallel, spin up worker processes to do parallel widget processing
     if args.parallel and args.parallel > 1:
-        logging.info(f"Starting {args.parallel} parallel workers to process widgets")
-        for worker_id in range(args.parallel):
-            worker = Process(target=process_widgets, args=(worker_id, args))
-            worker.start()
-            workers.append(worker)
-        logging.info("Workers started.  Waiting for completion")
-        for worker in workers:
-            worker.join()
-    # Process widgets in the main process
-    else:
+        start_widget_workers(args)
+    else:  # otherwise, process widgets in the main process
         logging.info("Processing widgets in single process mode")
         process_widgets(0, args)
-    if args.input_type == S3:
-        delete_temporary_queue(temp_queue)
+    # wait for child processes to finish
+    wait_for_workers_to_finish()
 
 
 if __name__ == '__main__':

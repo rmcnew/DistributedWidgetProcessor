@@ -16,10 +16,10 @@
 
 import logging
 
+
 def init(filename):
     logging.basicConfig(format='%(asctime)s [%(levelname)s] %(filename)s:%(lineno)d : %(message)s',
                         filename=f"{filename}.log",
-                        filemode="w",
+                        filemode="w",  # overwrite any previous log
                         level=logging.INFO)
     logging.info(f"{filename} starting up")
-

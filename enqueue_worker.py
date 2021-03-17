@@ -18,10 +18,9 @@
 import logging
 import time
 
-import boto3
-from botocore.exceptions import ClientError
+from boto3 import client
 
-from constants import *
+from constants import UTF8, S3_MAX_KEYS_TO_LIST, BODY, KEY, CONTENTS
 
 
 def enqueue_object_list(s3, sqs, bucket, queue_url, object_list):
@@ -43,8 +42,8 @@ def enqueue_object_list(s3, sqs, bucket, queue_url, object_list):
 def s3_bucket_to_sqs(bucket, queue_url, retry_max, retry_sleep):
     """Entry point for Enqueue Worker"""
     # create AWS clients
-    s3 = boto3.client('s3')
-    sqs = boto3.client('sqs')
+    s3 = client('s3')
+    sqs = client('sqs')
 
     retries_left = retry_max
 

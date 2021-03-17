@@ -19,9 +19,9 @@ import logging
 import random
 import string
 
-import boto3
+from boto3 import client
 
-from constants import *
+from constants import SQS_MESSAGE_COUNT, MESSAGES, RECEIPT_HANDLE, SQS_WAIT_TIME, QUEUE_URL, BODY
 
 
 # SQS
@@ -49,19 +49,20 @@ def delete_widget_request_from_sqs(worker_id, sqs, args, message_handle):
     sqs.delete_message(QueueUrl=args.input_name, ReceiptHandle=message_handle)
 
 
-def get_random_queue_name():
+# temporary queue functions for use with enqueue_worker
+def get_random_queue_name(name_length=20):
     """Generate a random name for a temporary queue"""
-    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=20))
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=name_length))
 
 
 def create_temporary_queue():
     """Create a temporary SQS queue"""
-    sqs = boto3.client('sqs')
+    sqs = client('sqs')
     result = sqs.create_queue(QueueName=get_random_queue_name())
     return result[QUEUE_URL]
 
 
 def delete_temporary_queue(queue_url):
     """Delete a temporary SQS queue"""
-    sqs = boto3.client('sqs')
+    sqs = client('sqs')
     sqs.delete_queue(QueueUrl=queue_url)
