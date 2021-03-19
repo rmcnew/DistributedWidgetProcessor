@@ -1,0 +1,14 @@
+A command line similar to the following can be used to run the Liquid Fortress Widget Processor:
+
+docker run  --env-file docker.env -it lfwp_0 --input-type S3 --input-name your-widget-request-bucket --output-type DYNAMO_DB --output-name widgets --parallel 4
+
+"docker.env" needs to contain environment variables that specify the AWS default region and creditials.  It should look something like this:
+
+AWS_DEFAULT_REGION=YOUR_AWS_REGION
+AWS_ACCESS_KEY_ID=YOUR_AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY=YOUR_AWS_SECRET_ACCESS_KEY
+AWS_SESSION_TOKEN=YOUR_AWS_SESSION_TOKEN
+
+"lfwp_0" is the docker image to use
+
+All of the remaining command line parameters are the same parameters used to launch "process_widgets.py"
