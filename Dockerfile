@@ -6,6 +6,6 @@ COPY requirements.txt .
 
 RUN pip install -r requirements.txt
 
-COPY *.py .
+COPY *.py /lfwp/
 
 ENTRYPOINT ["python", "./process_widgets.py"]

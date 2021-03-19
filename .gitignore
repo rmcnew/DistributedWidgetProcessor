@@ -1,5 +1,6 @@
 Process_Widgets.log
 Enqueue_Worker.log
+docker.env
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
