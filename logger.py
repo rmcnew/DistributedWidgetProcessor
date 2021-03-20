@@ -14,12 +14,25 @@
 #  You should have received a copy of the GNU General Public License
 #  along with Liquid Fortress Widget Processor.  If not, see <http://www.gnu.org/licenses/>.
 
+from pathlib import Path
 import logging
 
 
 def init(filename):
-    logging.basicConfig(format='%(asctime)s [%(levelname)s] %(filename)s:%(lineno)d : %(message)s',
-                        filename=f"{filename}.log",
-                        filemode="w",  # overwrite any previous log
-                        level=logging.INFO)
+    # log to stderr
+    console_handler = logging.StreamHandler()
+
+    # also log to specified filename
+    log_filename=Path(f"./{filename}.log")
+    log_filemode='w'  # overwrite any previous log
+    file_handler = logging.FileHandler(log_filename, mode=log_filemode)
+    log_handlers = [file_handler, console_handler]
+
+    # default log level
+    log_level=logging.INFO
+
+    # log line format
+    log_format='%(asctime)s [%(levelname)s] %(filename)s:%(lineno)d : %(message)s'
+
+    logging.basicConfig(level=log_level, format=log_format, handlers=log_handlers)
     logging.info(f"{filename} starting up")
