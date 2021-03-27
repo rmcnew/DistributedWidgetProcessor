@@ -16,16 +16,22 @@
 
 # handle AWS API Gateway requests
 import json
+import os
+import boto3
+
+queue_url = os.environ["QUEUE_URL"]
+sqs = boto3.client('sqs')
 
 
 def lambda_handler(event, context):
-
     body = event["body"]
+
+    response = sqs.send_message(QueueUrl=queue_url, MessageBody=json.dumps(body))
 
     return {
         "statusCode": 200,
         "headers": {
             "Content-Type": "application/json"
         },
-        "body": json.dumps(body)
+        "body": body
     }
