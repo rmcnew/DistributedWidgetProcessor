@@ -18,23 +18,10 @@
 import json
 import os
 import boto3
-from jsonschema import validate
-from jsonschema.exceptions import ValidationError
-from pathlib import Path
 
 queue_url = os.environ["QUEUE_URL"]
 sqs = boto3.client('sqs')
-widget_request_schema = json.load(Path("./widgetRequest-schema.json"))
 MAX_RETRY = 3
-
-
-def validate_json(json_data):
-    """Validate the received widget request"""
-    try:
-        validate(instance=json_data, schema=widget_request_schema)
-    except ValidationError as err:
-        return False
-    return True
 
 
 def get_json_response(status_code, message):
@@ -78,19 +65,16 @@ def send_message_or_error(widget_request_str):
 
 
 def lambda_handler(event, context):
-    """Handle a widget request event; note that we have request body validation
-       enabled on the API Gateway using the widgetRequest JSON schema.  While
-       this should catch errors to prevent invocation of this handler, we
-       still check for the required widgetRequest fields here too"""
+    """Handle a widget request event; note that request body validation is
+       enabled on the API Gateway using the widgetRequest JSON schema.  This
+       ensures that only valid widget requests reach the lambda_handler and
+       prevents spurious lambda_handler invocations"""
     # Ensure event body exists
     if "body" not in event:
         return get_client_error("Error! No body in request")
     # Get event body
     body = event["body"]
-    # Validate widget request JSON against schema
-    if not validate_json(body):
-        return get_client_error(f"Malformed widget request JSON!  Widget requests must be JSON conforming to the "
-                                f"following JSON schema:\n{widget_request_schema}")
+
     # Send widget request to SQS for processing
     widget_request_str = json.dumps(body)
     message_id = send_message_or_error(widget_request_str)
