@@ -20,12 +20,63 @@ import os
 import boto3
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError
-from pathlib import Path
 
+widget_request_schema = {
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "type": "object",
+    "properties": {
+        "type": {
+            "type": "string",
+            "pattern": "create|delete|update"
+        },
+        "requestId": {
+            "type": "string"
+        },
+        "widgetId": {
+            "type": "string"
+        },
+        "owner": {
+            "type": "string",
+            "pattern": "[A-Za-z ]+"
+        },
+        "label": {
+            "type": "string"
+        },
+        "description": {
+            "type": "string"
+        },
+        "otherAttributes": {
+            "type": "array",
+            "items": [
+                {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string"
+                        },
+                        "value": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "name",
+                        "value"
+                    ]
+                }
+            ]
+        }
+    },
+    "required": [
+        "type",
+        "requestId",
+        "widgetId",
+        "owner"
+    ]
+}
+
+MAX_RETRY = 3
 queue_url = os.environ["QUEUE_URL"]
 sqs = boto3.client('sqs')
-widget_request_schema = json.load(Path("./widgetRequest-schema.json"))
-MAX_RETRY = 3
 
 
 def validate_json(json_data):
@@ -33,8 +84,8 @@ def validate_json(json_data):
     try:
         validate(instance=json_data, schema=widget_request_schema)
     except ValidationError as err:
-        return False
-    return True
+        return False, err.message
+    return True, None
 
 
 def get_json_response(status_code, message):
@@ -88,8 +139,10 @@ def lambda_handler(event, context):
     # Get event body
     body = event["body"]
     # Validate widget request JSON against schema
-    if not validate_json(body):
-        return get_client_error(f"Malformed widget request JSON!  Widget requests must be JSON conforming to the "
+    (validated, message) = validate_json(body)
+    if not validated:
+        return get_client_error(f"Malformed widget request JSON:  {message}\n"
+                                f"Widget requests must be JSON conforming to the "
                                 f"following JSON schema:\n{widget_request_schema}")
     # Send widget request to SQS for processing
     widget_request_str = json.dumps(body)

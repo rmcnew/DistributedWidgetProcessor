@@ -1,0 +1,36 @@
+{
+  "body": {
+    "type": "update",
+    "requestId": "687e3438-c0ea-448c-979b-3b1e2dccf02d",
+    "widgetId": "299ec0d9-4803-4c8d-bb10-9c4a50fb402d",
+    "owner": "Henry Hops",
+    "label": "OZYLYLJ",
+    "description": "VLTBXMIRLGPRGNVBSYPWOQIFFZEGLUKPORNULURXDORNTQXBFXVVEOETNEJGGQTNGQQXGWUUJRZZVPATZGSETURYVBJXMLLSEZF",
+    "otherAttributes": [
+      {
+        "name": "height-unit",
+        "value": "cm"
+      },
+      {
+        "name": "width",
+        "value": "818"
+      },
+      {
+        "name": "width-unit",
+        "value": "cm"
+      },
+      {
+        "name": "rating",
+        "value": "4.618845"
+      },
+      {
+        "name": "price",
+        "value": "25.35"
+      },
+      {
+        "name": "vendor",
+        "value": "KBHLOWWFBNULVVPVHZM"
+      }
+    ]
+  }
+}

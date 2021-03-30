@@ -1,0 +1,35 @@
+{
+  "body": {
+    "type": "create",
+    "requestId": "28144bcf-d2ce-4212-a19e-91e1c4c3821b",
+    "widgetId": "0d3f9f0b-d5e2-4f5b-840c-167aeda7e339",
+    "label": "ZXYIETZO",
+    "description": "XAUNIHCBVUBKCEYMWWNXVZUENPNQOOEPVYFEQQLOGVMZPQHHUVZSPTYZBAHELXYZPCNDUFFUKMVTHFOKYCDHFOCLWRVIWGGCXTA",
+    "otherAttributes": [
+      {
+        "name": "size",
+        "value": "22"
+      },
+      {
+        "name": "size-unit",
+        "value": "cm"
+      },
+      {
+        "name": "height",
+        "value": "31"
+      },
+      {
+        "name": "height-unit",
+        "value": "cm"
+      },
+      {
+        "name": "price",
+        "value": "77.95"
+      },
+      {
+        "name": "note",
+        "value": "CREGARL"
+      }
+    ]
+  }
+}

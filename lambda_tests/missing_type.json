@@ -1,0 +1,43 @@
+{
+  "body": {
+    "requestId": "1783d58d-45aa-4e19-b10d-0c74f03cbc9a",
+    "widgetId": "b88c35a3-7a28-4b80-8aad-1783155e5cd3",
+    "owner": "Sue Smith",
+    "label": "KFKDDW",
+    "description": "CLE",
+    "otherAttributes": [
+      {
+        "name": "size",
+        "value": "820"
+      },
+      {
+        "name": "size-unit",
+        "value": "cm"
+      },
+      {
+        "name": "width",
+        "value": "298"
+      },
+      {
+        "name": "length",
+        "value": "660"
+      },
+      {
+        "name": "price",
+        "value": "57.03"
+      },
+      {
+        "name": "quantity",
+        "value": "426"
+      },
+      {
+        "name": "vendor",
+        "value": "ADASWUPB"
+      },
+      {
+        "name": "note",
+        "value": "KRMONJVBOSCUVQLEIFBQXJMWTPIGOAMJTJSCQZORVFFUULYLNVCOGRUAGFCWDEFABSWWUOFXZHYQUCOHMZADOOZOJLEIUATKAPEBYSGAMRZHCLRIDUQMZUCNGLHZJNNEPKJMMPQRTSEXIWQXPKASHIHUIVFRVLSFJHBQJKCAJRSQHXNDVEAPLINZPMUBBGTBAJKWTHIOSAFXILVOUIUTRLLKXFKTAYJEFWXBARDUNWVWAQIPNLWTDZMJVNLFNGCPJCZFNLPUHRAZJVQHGRJBWTLFOVHGXGPXXVGEWVJNKUVGNMYSILPWG"
+      }
+    ]
+  }
+}
