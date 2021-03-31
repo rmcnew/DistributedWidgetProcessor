@@ -1,7 +1,5 @@
 {
-  "body": {
-    "type": "delete",
-    "widgetId": "0272e8a8-ca7f-47c7-82b6-2da3207e138c",
-    "owner": "Mary Matthews"
-  }
+  "type": "delete",
+  "widgetId": "0272e8a8-ca7f-47c7-82b6-2da3207e138c",
+  "owner": "Mary Matthews"
 }

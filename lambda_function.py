@@ -133,19 +133,14 @@ def lambda_handler(event, context):
        enabled on the API Gateway using the widgetRequest JSON schema.  While
        this should catch errors to prevent invocation of this handler, we
        still check for the required widgetRequest fields here too"""
-    # Ensure event body exists
-    if "body" not in event:
-        return get_client_error("Error! No body in request")
-    # Get event body
-    body = event["body"]
     # Validate widget request JSON against schema
-    (validated, message) = validate_json(body)
+    (validated, message) = validate_json(event)
     if not validated:
         return get_client_error(f"Malformed widget request JSON:  {message}\n"
                                 f"Widget requests must be JSON conforming to the "
-                                f"following JSON schema:\n{widget_request_schema}")
+                                f"widgetRequest-schema.json")
     # Send widget request to SQS for processing
-    widget_request_str = json.dumps(body)
+    widget_request_str = json.dumps(event)
     message_id = send_message_or_error(widget_request_str)
     if message_id is None:
         return get_server_error(f"SQS Error!  Failed to send widget request: {widget_request_str}")

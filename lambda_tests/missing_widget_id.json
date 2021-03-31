@@ -1,35 +1,34 @@
 {
-  "body": {
-    "type": "update",
-    "requestId": "49063203-00b9-4914-b7d7-dc96f32a41fd",
-    "owner": "Mary Matthews",
-    "label": "XSXNHBZB",
-    "description": "XFTMLZRFTYGHEOOHNNWYIMMLEEXXJVMAASVFMOEXFLMEFMZCMFOALWGTMIFHFCVXAKPXNPCUUYIIWUVEBTZPNRSCFOKHLXGLMLG",
-    "otherAttributes": [
-      {
-        "name": "size",
-        "value": "450"
-      },
-      {
-        "name": "height",
-        "value": "956"
-      },
-      {
-        "name": "width-unit",
-        "value": "cm"
-      },
-      {
-        "name": "length",
-        "value": "726"
-      },
-      {
-        "name": "length-unit",
-        "value": "cm"
-      },
-      {
-        "name": "vendor",
-        "value": "EFWMQO"
-      }
-    ]
-  }
+  "type": "update",
+  "requestId": "49063203-00b9-4914-b7d7-dc96f32a41fd",
+  "owner": "Mary Matthews",
+  "label": "XSXNHBZB",
+  "description": "XFTMLZRFTYGHEOOHNNWYIMMLEEXXJVMAASVFMOEXFLMEFMZCMFOALWGTMIFHFCVXAKPXNPCUUYIIWUVEBTZPNRSCFOKHLXGLMLG",
+  "otherAttributes": [
+    {
+      "name": "size",
+      "value": "450"
+    },
+    {
+      "name": "height",
+      "value": "956"
+    },
+    {
+      "name": "width-unit",
+      "value": "cm"
+    },
+    {
+      "name": "length",
+      "value": "726"
+    },
+    {
+      "name": "length-unit",
+      "value": "cm"
+    },
+    {
+      "name": "vendor",
+      "value": "EFWMQO"
+    }
+  ]
 }
+
